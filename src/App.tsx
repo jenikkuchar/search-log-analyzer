@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   CalendarDays,
   Activity,
-  X
+  X,
+  Upload,
+  Lightbulb
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -42,6 +44,24 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Barvy grafů dle manuálu – pevné pořadí sérií
+const CHART = ['#0a84ff', '#30d158', '#ff9f0a', '#bf5af2', '#ff375f', '#64d2ff', '#ffd60a', '#ac8e68'];
+const DANGER = '#ff453a';
+const CHART_GRID = 'rgba(255,255,255,.08)';
+const CHART_AXIS = 'rgba(235,235,245,.38)';
+const TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(32,32,40,.92)',
+  borderRadius: '14px',
+  border: 'none',
+  boxShadow: '0 0 0 .5px rgba(255,255,255,.14) inset, 0 40px 100px -20px rgba(0,0,0,.8)',
+  fontSize: '12px'
+};
+
+// Český formát čísel
+const nf = (n: number, digits = 0) =>
+  n.toLocaleString('cs-CZ', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const pf = (n: number, digits = 1) => `${nf(n, digits)} %`;
+
 interface TimelineTooltipProps {
   active?: boolean;
   payload?: any[];
@@ -55,25 +75,19 @@ function TimelineTooltip({ active, payload, filteredCount }: TimelineTooltipProp
   if (!data) return null;
 
   return (
-    <div className={cn(
-      "p-3.5 rounded-xl border shadow-2xl text-xs font-sans max-w-xs transition-all z-50",
-      data.isZero 
-        ? "bg-slate-950/95 border-rose-500/60 shadow-rose-950/40 text-slate-200 ring-1 ring-rose-500/30" 
-        : "bg-slate-900/95 border-slate-700 shadow-slate-950/60 text-slate-200"
-    )}>
-      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-slate-700/60">
+    <div className="popover p-3.5 text-xs max-w-xs z-50 text-fg">
+      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b-[0.5px] border-line">
         <div>
-          <span className="font-bold text-white text-sm">
+          <span className="font-semibold text-fg text-sm tabular-nums">
             {data.dayOfWeek} {data.fullDate}
           </span>
         </div>
         {data.isZero ? (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/25 text-rose-400 border border-rose-500/40 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          <span className="badge badge-dot b-err">
             Nulová oblast
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+          <span className="badge badge-dot b-accent">
             Aktivní den
           </span>
         )}
@@ -81,42 +95,42 @@ function TimelineTooltip({ active, payload, filteredCount }: TimelineTooltipProp
 
       {data.isZero ? (
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 font-bold text-sm text-rose-400">
-            <AlertTriangle size={14} className="text-rose-400 shrink-0" />
+          <div className="flex items-center gap-1.5 font-semibold text-sm text-danger">
+            <AlertTriangle size={14} className="shrink-0" />
             <span>0 vyhledávání</span>
           </div>
-          <p className="text-slate-400 text-[11px] leading-relaxed">
+          <p className="text-fg-muted text-xs leading-relaxed">
             V tento den nebyla zaznamenána žádná aktivita vyhledávání (výpadek nebo období bez dotazů).
           </p>
-          <div className="pt-1 text-[10px] text-rose-300/75 italic">
+          <div className="pt-1 text-xs text-fg-subtle">
             Kliknutím na sloupec vyberete tento den
           </div>
         </div>
       ) : (
-        <div className="space-y-1.5 text-slate-300">
+        <div className="space-y-1.5 text-fg-muted">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-slate-400">Počet vyhledávání:</span>
-            <span className="font-bold text-white text-sm">{data.count}</span>
+            <span>Počet vyhledávání:</span>
+            <span className="font-semibold text-fg text-sm tabular-nums">{nf(data.count)}</span>
           </div>
           {filteredCount > 0 && (
-            <div className="flex items-center justify-between gap-4 text-[11px]">
-              <span className="text-slate-400">Podíl z vybraného období:</span>
-              <span className="text-emerald-400 font-medium">{((data.count / filteredCount) * 100).toFixed(1)}%</span>
+            <div className="flex items-center justify-between gap-4">
+              <span>Podíl z vybraného období:</span>
+              <span className="text-fg font-medium tabular-nums">{pf((data.count / filteredCount) * 100)}</span>
             </div>
           )}
           {data.priceCount > 0 && (
-            <div className="flex items-center justify-between gap-4 text-[11px]">
-              <span className="text-slate-400">S filtrem ceny:</span>
-              <span className="text-amber-400 font-medium">{data.priceCount}</span>
+            <div className="flex items-center justify-between gap-4">
+              <span>S filtrem ceny:</span>
+              <span className="text-fg font-medium tabular-nums">{nf(data.priceCount)}</span>
             </div>
           )}
           {data.sortCount > 0 && (
-            <div className="flex items-center justify-between gap-4 text-[11px]">
-              <span className="text-slate-400">S explicitním řazením:</span>
-              <span className="text-blue-400 font-medium">{data.sortCount}</span>
+            <div className="flex items-center justify-between gap-4">
+              <span>S explicitním řazením:</span>
+              <span className="text-fg font-medium tabular-nums">{nf(data.sortCount)}</span>
             </div>
           )}
-          <div className="pt-1 text-[10px] text-slate-500 italic">
+          <div className="pt-1 text-xs text-fg-subtle">
             Kliknutím na sloupec vyfiltrujete dotazy tohoto dne
           </div>
         </div>
@@ -656,113 +670,138 @@ export default function App() {
     }
   };
 
-  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const uploadStatusClass = (type: 'success' | 'error' | 'info') =>
+    type === 'success' ? "bg-success/10 text-success hairline" :
+    type === 'error' ? "bg-danger/10 text-danger hairline-danger" :
+    "bg-accent-soft text-accent hairline-accent";
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 font-sans p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Datart Search Analyzer</h1>
-            <p className="text-slate-400 mt-1 italic font-serif">Analýza logů vyhledávacího nástroje</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => {
-                console.log("Header upload button clicked");
-                fileInputRef.current?.click();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors shadow-sm text-sm font-medium text-slate-200"
-            >
-              <FileUp size={18} />
+    <div className="min-h-screen flex flex-col">
+
+      {/* Horní lišta */}
+      <header className="topbar sticky top-0 z-20 h-14 flex items-center gap-3 px-4 sm:px-5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <a href="https://www.jan-kuchar.cz" aria-label="jan-kuchar.cz" className="mark">JK</a>
+          <span className="text-fg-subtle text-lg font-light" aria-hidden="true">/</span>
+          <img src="/favicon.svg" alt="" className="size-[26px] shrink-0" />
+          <span className="text-[15px] font-light tracking-[-0.01em] whitespace-nowrap max-[340px]:sr-only">
+            Search <b className="font-semibold">Analyzer</b>
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              console.log("Header upload button clicked");
+              fileInputRef.current?.click();
+            }}
+            className="btn btn-secondary btn-sm"
+            title={uploadedFiles.length > 0 ? 'Sloučit další JSON' : 'Nahrát JSON'}
+          >
+            <FileUp />
+            <span className={cn(toolCalls.length > 0 && "max-sm:sr-only")}>
               {uploadedFiles.length > 0 ? 'Sloučit další JSON' : 'Nahrát JSON'}
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              className="hidden" 
-              multiple 
-            />
-            
-            {toolCalls.length > 0 && (
-              <>
-                <button 
-                  onClick={handleReset}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-rose-500/20 hover:border-rose-500/50 transition-all shadow-sm text-sm font-medium text-slate-300"
-                >
-                  Resetovat
-                </button>
-                <button 
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-sm text-sm font-medium"
-                >
-                  <Download size={18} />
-                  {selectedDay ? `Exportovat den (${displayCalls.length})` : 'Exportovat CSV'}
-                </button>
-              </>
-            )}
-          </div>
-        </header>
+            </span>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            multiple
+          />
+
+          {toolCalls.length > 0 && (
+            <>
+              <button
+                onClick={handleReset}
+                className="btn btn-danger btn-sm"
+                title="Resetovat"
+              >
+                <X className="sm:hidden" />
+                <span className="max-sm:sr-only">Resetovat</span>
+              </button>
+              <button
+                onClick={handleExport}
+                className="btn btn-primary btn-sm"
+                title={selectedDay ? `Exportovat den (${displayCalls.length})` : 'Exportovat CSV'}
+              >
+                <Download />
+                <span className="max-sm:sr-only">
+                  {selectedDay ? `Exportovat den (${nf(displayCalls.length)})` : 'Exportovat CSV'}
+                </span>
+              </button>
+            </>
+          )}
+        </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-[1200px] mx-auto px-4 sm:px-6 pt-7 pb-8 space-y-4">
+
+        {/* Titulek stránky */}
+        <div className="pb-1">
+          <h1 className="text-2xl sm:text-[32px] sm:leading-[1.15] font-semibold tracking-[-0.02em] text-fg">Datart Search Analyzer</h1>
+          <p className="text-[13px] text-fg-muted mt-1">Analýza logů vyhledávacího nástroje</p>
+        </div>
 
         {toolCalls.length === 0 ? (
-          <div 
+          <div
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            className={cn(
-              "flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 md:px-8 border-2 border-dashed rounded-2xl transition-all",
-              isDragging ? "border-blue-500 bg-blue-500/10" : "border-slate-700 bg-slate-800/50"
-            )}
+            className="space-y-4"
           >
-            <div className="p-6 bg-slate-800 rounded-full mb-4">
-              <FileUp size={48} className="text-slate-500" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2 text-white">Nahrajte logy k analýze</h2>
-            <p className="text-slate-400 text-center max-w-md px-4 mb-6">
-              Přetáhněte jeden nebo více JSON souborů s logy, nebo klikněte na tlačítko níže. 
-              Budeme analyzovat a sloučíme volání <code className="bg-slate-800 px-1 rounded text-xs text-blue-400">search_datart_tool</code>.
-            </p>
-            
-            <button 
-              onClick={() => {
-                console.log("Empty state upload button clicked");
-                fileInputRef.current?.click();
-              }}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 transition-all shadow-lg font-semibold mb-8"
+            <div
+              className={cn(
+                "dropzone grid justify-items-center text-center gap-2.5 px-3.5 py-7 sm:px-5 sm:py-10",
+                isDragging && "is-over"
+              )}
             >
-              <FileUp size={20} />
-              Vybrat soubory
-            </button>
+              <span className="size-[52px] rounded-full bg-accent-soft text-accent grid place-items-center">
+                <Upload size={24} strokeWidth={1.8} />
+              </span>
+              <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.01em] text-fg">Nahrajte logy k analýze</h2>
+              <p className="text-fg-muted max-w-[46ch]">
+                Přetáhněte jeden nebo více JSON souborů s logy, nebo klikněte na tlačítko níže.
+                Budeme analyzovat a sloučíme volání <code className="text-info">search_datart_tool</code>.
+              </p>
 
-            {uploadStatus && (
-              <div className={cn(
-                "px-4 py-3 rounded-lg text-sm max-w-md text-center animate-in fade-in slide-in-from-bottom-2 mb-8",
-                uploadStatus.type === 'success' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                uploadStatus.type === 'error' ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-              )}>
-                {uploadStatus.message}
-              </div>
-            )}
+              <button
+                onClick={() => {
+                  console.log("Empty state upload button clicked");
+                  fileInputRef.current?.click();
+                }}
+                className="btn btn-primary mt-1.5"
+              >
+                <FileUp />
+                Vybrat soubory
+              </button>
+              <span className="text-xs text-fg-subtle mt-0.5">Podporované formáty: JSON a NDJSON · data zůstávají jen v prohlížeči</span>
 
-            <div className="max-w-2xl w-full bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mt-4">
-              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Clock size={16} className="text-blue-400" />
+              {uploadStatus && (
+                <div className={cn(
+                  "mt-3 px-4 py-3 rounded-row text-sm max-w-md text-center",
+                  uploadStatusClass(uploadStatus.type)
+                )}>
+                  {uploadStatus.message}
+                </div>
+              )}
+            </div>
+
+            <div className="panel !bg-transparent p-5">
+              <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg mb-2.5 flex items-center gap-2">
+                <Clock size={16} className="text-accent" />
                 Jak získat logy z Google Cloud?
               </h3>
-              <ol className="space-y-3 text-sm text-slate-400 list-decimal list-inside">
-                <li>Otevřete <a href="https://console.cloud.google.com/logs/query" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">Google Cloud Console - Log Explorer</a>.</li>
+              <ol className="space-y-1.5 text-fg-muted list-decimal pl-5 marker:text-fg-subtle">
+                <li>Otevřete <a href="https://console.cloud.google.com/logs/query" target="_blank" rel="noreferrer" className="hover:underline">Google Cloud Console - Log Explorer</a>.</li>
                 <li>Do vyhledávacího pole vložte filtr:<br />
-                  <code className="block bg-slate-950 p-2 rounded mt-2 text-blue-300 font-mono text-xs border border-slate-800">
+                  <code className="block bg-surface-2 hairline px-3 py-2 rounded-row mt-2 text-info text-xs">
                     SEARCH("search_datart_tool called with query")
                   </code>
                 </li>
-                <li>Klikněte na tlačítko <strong>Actions</strong> vpravo nahoře a zvolte <strong>Download</strong>.</li>
-                <li>V dialogu ponechte formát <strong>JSON</strong> a potvrďte stažení.</li>
+                <li>Klikněte na tlačítko <strong className="text-fg font-semibold">Actions</strong> vpravo nahoře a zvolte <strong className="text-fg font-semibold">Download</strong>.</li>
+                <li>V dialogu ponechte formát <strong className="text-fg font-semibold">JSON</strong> a potvrďte stažení.</li>
                 <li>Stažený soubor nahrajte sem do analyzátoru.</li>
               </ol>
             </div>
@@ -771,47 +810,45 @@ export default function App() {
           <>
             {/* List of uploaded files */}
             {uploadedFiles.length > 0 && (
-              <section className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-3">
+              <section className="panel p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-[0.5px] border-line pb-3">
                   <div className="flex items-center gap-2">
-                    <Files size={20} className="text-blue-400" />
-                    <h3 className="font-semibold text-white">Sloučené soubory logů ({uploadedFiles.length})</h3>
+                    <Files size={18} className="text-accent" />
+                    <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Sloučené soubory logů ({uploadedFiles.length})</h3>
                   </div>
-                  <div className="text-xs text-slate-400 font-mono">
-                    Celkem sloučeno: <span className="text-emerald-400 font-bold">{toolCalls.length}</span> vyhledávacích dotazů
+                  <div className="text-xs text-fg-muted">
+                    Celkem sloučeno: <span className="text-fg font-semibold tabular-nums">{nf(toolCalls.length)}</span> vyhledávacích dotazů
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800 rounded-xl hover:border-slate-700 hover:bg-slate-900/90 transition-all group">
+                    <div key={file.id} className="flex items-center justify-between p-3 bg-surface-2 hairline rounded-card hover:bg-surface-3 transition-colors group">
                       <div className="min-w-0 pr-2">
-                        <p className="text-sm font-medium text-slate-200 truncate" title={file.name}>
+                        <p className="text-sm font-medium text-fg truncate" title={file.name}>
                           {file.name}
                         </p>
-                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                          <span>{(file.size / 1024).toFixed(1)} KB</span>
-                          <span>•</span>
-                          <span className="text-emerald-500 font-medium">{file.extractedCount} záznamů</span>
+                        <div className="flex items-center gap-2 text-xs text-fg-subtle mt-1 tabular-nums">
+                          <span>{nf(file.size / 1024, 1)} KB</span>
+                          <span>·</span>
+                          <span className="text-fg-muted">{nf(file.extractedCount)} záznamů</span>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleRemoveFile(file.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+                        className="btn btn-ghost btn-sm btn-icon !text-fg-subtle hover:!text-danger hover:!bg-danger/15 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
                         title="Odebrat soubor ze sloučení"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 />
                       </button>
                     </div>
                   ))}
                 </div>
-                
+
                 {uploadStatus && (
                   <div className={cn(
-                    "px-4 py-2 rounded-lg text-xs w-full text-center transition-all animate-in fade-in",
-                    uploadStatus.type === 'success' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                    uploadStatus.type === 'error' ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    "px-4 py-2 rounded-row text-xs w-full text-center",
+                    uploadStatusClass(uploadStatus.type)
                   )}>
                     {uploadStatus.message}
                   </div>
@@ -820,165 +857,162 @@ export default function App() {
             )}
 
             {/* Filters */}
-            <section className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-              <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
-                <Filter size={20} className="text-blue-400" />
-                <h3 className="font-semibold text-white">Filtrování reportu</h3>
+            <section className="panel p-5">
+              <div className="flex items-center gap-2 mb-4 border-b-[0.5px] border-line pb-3">
+                <Filter size={18} className="text-accent" />
+                <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Filtrování reportu</h3>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid gap-1.5">
+                  <label className="field-label">
                     <Calendar size={12} /> Od data
                   </label>
-                  <input 
-                    type="date" 
-                    value={startDate} 
+                  <input
+                    type="date"
+                    value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-200"
+                    className="input tabular-nums"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <div className="grid gap-1.5">
+                  <label className="field-label">
                     <Clock size={12} /> Od času
                   </label>
-                  <input 
-                    type="time" 
-                    value={startTime} 
+                  <input
+                    type="time"
+                    value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-200"
+                    className="input tabular-nums"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <div className="grid gap-1.5">
+                  <label className="field-label">
                     <Calendar size={12} /> Do data
                   </label>
-                  <input 
-                    type="date" 
-                    value={endDate} 
+                  <input
+                    type="date"
+                    value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-200"
+                    className="input tabular-nums"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <div className="grid gap-1.5">
+                  <label className="field-label">
                     <Clock size={12} /> Do času
                   </label>
-                  <input 
-                    type="time" 
-                    value={endTime} 
+                  <input
+                    type="time"
+                    value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-200"
+                    className="input tabular-nums"
                   />
                 </div>
               </div>
             </section>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <Search size={20} className="text-slate-200" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="card px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="size-8 grid place-items-center bg-surface-2 hairline rounded-row text-accent">
+                    <Search size={16} />
                   </div>
-                  <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">Celkem</span>
+                  <span className="badge b-neutral">Celkem</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.totalSearches}</div>
-                <div className="text-sm text-slate-400 mt-1">Počet vyhledávání</div>
+                <div className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums text-fg">{nf(stats.totalSearches)}</div>
+                <div className="text-xs text-fg-muted mt-0.5">Počet vyhledávání</div>
               </div>
 
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <DollarSign size={20} className="text-amber-400" />
+              <div className="card px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="size-8 grid place-items-center bg-surface-2 hairline rounded-row text-accent">
+                    <DollarSign size={16} />
                   </div>
-                  <span className="text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">Cenové filtry</span>
+                  <span className="badge b-neutral">Cenové filtry</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.priceRangePercentage.toFixed(1)}%</div>
-                <div className="text-sm text-slate-400 mt-1">S definovanou cenou</div>
+                <div className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums text-fg">{pf(stats.priceRangePercentage)}</div>
+                <div className="text-xs text-fg-muted mt-0.5">S definovanou cenou</div>
               </div>
 
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <ArrowUpDown size={20} className="text-blue-400" />
+              <div className="card px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="size-8 grid place-items-center bg-surface-2 hairline rounded-row text-accent">
+                    <ArrowUpDown size={16} />
                   </div>
-                  <span className="text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded-full">Řazení</span>
+                  <span className="badge b-neutral">Řazení</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.sortingPercentage.toFixed(1)}%</div>
-                <div className="text-sm text-slate-400 mt-1">S požadavkem na řazení</div>
+                <div className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums text-fg">{pf(stats.sortingPercentage)}</div>
+                <div className="text-xs text-fg-muted mt-0.5">S požadavkem na řazení</div>
               </div>
 
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <BarChart3 size={20} className="text-rose-400" />
+              <div className="card px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="size-8 grid place-items-center bg-surface-2 hairline rounded-row text-accent">
+                    <BarChart3 size={16} />
                   </div>
-                  <span className="text-xs font-medium text-rose-400 bg-rose-400/10 px-2 py-1 rounded-full">Multi-dotazy</span>
+                  <span className="badge b-neutral">Multi-dotazy</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.multiQueryPercentage.toFixed(1)}%</div>
-                <div className="text-sm text-slate-400 mt-1">
-                  {stats.multiQuerySessions} událostí (ø {stats.avgQueriesPerMultiSession.toFixed(1)})
+                <div className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums text-fg">{pf(stats.multiQueryPercentage)}</div>
+                <div className="text-xs text-fg-muted mt-0.5 tabular-nums">
+                  {nf(stats.multiQuerySessions)} událostí (ø {nf(stats.avgQueriesPerMultiSession, 1)})
                 </div>
               </div>
 
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <TrendingUp size={20} className="text-violet-400" />
+              <div className="card px-4 py-3.5 sm:col-span-2 lg:col-span-1">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="size-8 grid place-items-center bg-surface-2 hairline rounded-row text-accent">
+                    <TrendingUp size={16} />
                   </div>
-                  <span className="text-xs font-medium text-violet-400 bg-violet-400/10 px-2 py-1 rounded-full">Top fráze</span>
+                  <span className="badge b-neutral">Top fráze</span>
                 </div>
-                <div className="text-xl font-bold truncate text-white">{stats.topPhrases?.[0]?.phrase || '-'}</div>
-                <div className="text-sm text-slate-400 mt-1">Nejčastější dotaz</div>
+                <div className="text-xl font-semibold tracking-[-0.01em] truncate text-fg leading-[39px]">{stats.topPhrases?.[0]?.phrase || '-'}</div>
+                <div className="text-xs text-fg-muted mt-0.5">Nejčastější dotaz</div>
               </div>
             </div>
 
             {/* Daily Timeline Section with Red Zero Areas Highlight */}
             {dailyTimelineData.length > 0 && (
-              <section className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl space-y-6">
+              <section className="panel p-5 space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400">
-                      <CalendarDays size={22} />
+                  <div className="flex items-start gap-3">
+                    <div className="size-9 shrink-0 grid place-items-center bg-accent-soft rounded-button text-accent">
+                      <CalendarDays size={18} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-white text-lg">Časová osa vyhledávání po dnech</h3>
+                        <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Časová osa vyhledávání po dnech</h3>
                         {selectedDay && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          <span className="badge badge-dot b-accent tabular-nums">
                             Vybrán den: {format(parseISO(selectedDay), 'd. M. yyyy')}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-fg-muted mt-0.5">
                         Denní počty vyhledávacích dotazů s červeně zvýrazněnými nulovými oblastmi (dny bez zaznamenaných hledání).
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Zero days indicator badge */}
                     {timelineStats.zeroDays > 0 ? (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-400 text-xs font-semibold shadow-sm">
-                        <AlertTriangle size={14} className="text-rose-400" />
-                        <span>
-                          {timelineStats.zeroDays} {timelineStats.zeroDays === 1 ? 'nulový den' : (timelineStats.zeroDays < 5 ? 'nulové dny' : 'nulových dnů')} ({timelineStats.zeroAreasCount} {timelineStats.zeroAreasCount === 1 ? 'oblast' : 'oblasti'})
-                        </span>
-                      </div>
+                      <span className="badge badge-dot b-err tabular-nums">
+                        {timelineStats.zeroDays} {timelineStats.zeroDays === 1 ? 'nulový den' : (timelineStats.zeroDays < 5 ? 'nulové dny' : 'nulových dnů')} ({timelineStats.zeroAreasCount} {timelineStats.zeroAreasCount === 1 ? 'oblast' : 'oblasti'})
+                      </span>
                     ) : (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-medium">
-                        <span>100% aktivních dní (žádné nulové výpadky)</span>
-                      </div>
+                      <span className="badge badge-dot b-ok">
+                        100% aktivních dní (žádné nulové výpadky)
+                      </span>
                     )}
 
                     {selectedDay && (
                       <button
                         onClick={() => setSelectedDay(null)}
-                        className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                        className="btn btn-secondary btn-sm"
                         title="Zrušit výběr dne"
                       >
-                        <X size={13} />
+                        <X />
                         <span>Zrušit výběr dne</span>
                       </button>
                     )}
@@ -986,53 +1020,51 @@ export default function App() {
                 </div>
 
                 {/* Timeline metric tiles */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
-                    <span className="text-[11px] font-medium text-slate-400 block mb-1">Délka období</span>
-                    <div className="text-xl font-bold text-white flex items-baseline gap-1.5">
-                      {timelineStats.totalDays} <span className="text-xs font-normal text-slate-400">dní</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="sunken px-3.5 py-3">
+                    <span className="text-xs text-fg-muted block mb-1">Délka období</span>
+                    <div className="text-xl font-semibold tracking-[-0.01em] text-fg flex items-baseline gap-1.5 tabular-nums">
+                      {nf(timelineStats.totalDays)} <span className="text-xs font-normal text-fg-subtle">dní</span>
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
-                    <span className="text-[11px] font-medium text-slate-400 block mb-1">Aktivní dny s hledáním</span>
-                    <div className="text-xl font-bold text-emerald-400 flex items-baseline gap-1.5">
-                      {timelineStats.activeDays} <span className="text-xs font-normal text-slate-400">dní ({timelineStats.totalDays > 0 ? ((timelineStats.activeDays / timelineStats.totalDays) * 100).toFixed(0) : 0}%)</span>
+                  <div className="sunken px-3.5 py-3">
+                    <span className="text-xs text-fg-muted block mb-1">Aktivní dny s hledáním</span>
+                    <div className="text-xl font-semibold tracking-[-0.01em] text-fg flex items-baseline gap-1.5 tabular-nums">
+                      {nf(timelineStats.activeDays)} <span className="text-xs font-normal text-fg-subtle">dní ({timelineStats.totalDays > 0 ? pf((timelineStats.activeDays / timelineStats.totalDays) * 100, 0) : pf(0, 0)})</span>
                     </div>
                   </div>
 
                   <div className={cn(
-                    "p-3.5 rounded-xl border transition-all",
-                    timelineStats.zeroDays > 0 
-                      ? "bg-rose-950/30 border-rose-500/40 text-rose-300" 
-                      : "bg-slate-900/60 border-slate-700/60 text-slate-300"
+                    "sunken px-3.5 py-3",
+                    timelineStats.zeroDays > 0 && "!bg-danger/10 hairline-danger"
                   )}>
-                    <span className="text-[11px] font-medium text-slate-400 block mb-1">Nulové oblasti (výpadky)</span>
+                    <span className="text-xs text-fg-muted block mb-1">Nulové oblasti (výpadky)</span>
                     <div className={cn(
-                      "text-xl font-bold flex items-baseline gap-1.5",
-                      timelineStats.zeroDays > 0 ? "text-rose-400" : "text-slate-200"
+                      "text-xl font-semibold tracking-[-0.01em] flex items-baseline gap-1.5 tabular-nums",
+                      timelineStats.zeroDays > 0 ? "text-danger" : "text-fg"
                     )}>
-                      {timelineStats.zeroDays} <span className="text-xs font-normal opacity-75">dní ({timelineStats.zeroAreasCount} oblastí)</span>
+                      {nf(timelineStats.zeroDays)} <span className="text-xs font-normal text-fg-subtle">dní ({timelineStats.zeroAreasCount} oblastí)</span>
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
-                    <span className="text-[11px] font-medium text-slate-400 block mb-1">Průměr / Špička za den</span>
-                    <div className="text-xl font-bold text-blue-400 flex items-baseline gap-1.5">
-                      ø {timelineStats.avgPerActiveDay.toFixed(0)} <span className="text-xs font-normal text-slate-400">/ max {timelineStats.peakDay?.count || 0}</span>
+                  <div className="sunken px-3.5 py-3">
+                    <span className="text-xs text-fg-muted block mb-1">Průměr / Špička za den</span>
+                    <div className="text-xl font-semibold tracking-[-0.01em] text-fg flex items-baseline gap-1.5 tabular-nums">
+                      ø {nf(timelineStats.avgPerActiveDay)} <span className="text-xs font-normal text-fg-subtle">/ max {nf(timelineStats.peakDay?.count || 0)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Detected Zero Areas Banner (Highlighting zero search intervals in Red) */}
                 {zeroAreas.length > 0 && (
-                  <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl space-y-2.5">
+                  <div className="p-4 bg-danger/[0.06] hairline-danger rounded-card space-y-2.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 text-rose-300 font-semibold text-xs">
-                        <AlertTriangle size={15} className="text-rose-400 shrink-0" />
+                      <div className="flex items-center gap-2 text-fg font-semibold text-xs">
+                        <AlertTriangle size={15} className="text-danger shrink-0" />
                         <span>Detekované nulové oblasti (dny bez vyhledávání):</span>
                       </div>
-                      <span className="text-[11px] text-rose-400/80">
+                      <span className="text-xs text-fg-subtle">
                         Kliknutím na oblast vyberete daný den
                       </span>
                     </div>
@@ -1045,17 +1077,17 @@ export default function App() {
                             key={area.id}
                             onClick={() => setSelectedDay(prev => prev === area.startDateStr ? null : area.startDateStr)}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 border",
+                              "px-3 h-7 rounded-row text-xs font-medium transition-colors flex items-center gap-2 tabular-nums",
                               isSelected
-                                ? "bg-rose-600 text-white border-rose-400 shadow-lg shadow-rose-950 ring-2 ring-rose-400"
-                                : "bg-rose-900/40 hover:bg-rose-900/70 text-rose-200 border-rose-500/40 hover:border-rose-400"
+                                ? "bg-danger text-white"
+                                : "bg-danger/15 hover:bg-danger/25 text-danger hairline-danger"
                             )}
                             title={`Zobrazit den ${area.startDisplay}`}
                           >
-                            <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse shrink-0" />
+                            <span className={cn("size-1.5 rounded-full shrink-0", isSelected ? "bg-white" : "bg-danger")} />
                             <span>
-                              {area.daysCount === 1 
-                                ? `${area.startDisplay} (${area.days[0].dayOfWeek}) — 1 den (0 hledání)` 
+                              {area.daysCount === 1
+                                ? `${area.startDisplay} (${area.days[0].dayOfWeek}) — 1 den (0 hledání)`
                                 : `${area.startDisplay} – ${area.endDisplay} — ${area.daysCount} dny bez hledání`}
                             </span>
                           </button>
@@ -1066,58 +1098,60 @@ export default function App() {
                 )}
 
                 {/* Chart Header & Legend */}
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-1 flex-wrap gap-3">
+                <div className="flex items-center justify-between text-xs text-fg-muted flex-wrap gap-3">
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />
+                      <span className="size-2.5 rounded-[3px] bg-chart-1 inline-block" />
                       <span>Dny s aktivním hledáním</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-rose-500 inline-block" />
-                      <span className="text-rose-300 font-medium">Nulová oblast (červeně, 0 hledání)</span>
+                      <span className="size-2.5 rounded-[3px] bg-danger inline-block" />
+                      <span>Nulová oblast (červeně, 0 hledání)</span>
                     </div>
                   </div>
-                  <span className="text-[11px] text-slate-500">
-                    💡 Tip: Kliknutím na sloupec dne vyfiltrujete tabulku
+                  <span className="text-xs text-fg-subtle flex items-center gap-1.5">
+                    <Lightbulb size={13} className="text-accent" />
+                    Tip: Kliknutím na sloupec dne vyfiltrujete tabulku
                   </span>
                 </div>
 
                 {/* Recharts Bar Chart */}
                 <div className="w-full h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={dailyTimelineData} 
+                    <BarChart
+                      data={dailyTimelineData}
                       margin={{ top: 20, right: 15, left: 0, bottom: dailyTimelineData.length > 12 ? 45 : 20 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.6} />
-                      <XAxis 
-                        dataKey="label" 
-                        tick={{ fontSize: 11, fill: '#94A3B8' }}
+                      <CartesianGrid vertical={false} stroke={CHART_GRID} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11, fill: CHART_AXIS }}
                         tickLine={false}
-                        axisLine={{ stroke: '#475569' }}
+                        axisLine={{ stroke: CHART_GRID }}
                         interval={dailyTimelineData.length > 30 ? Math.ceil(dailyTimelineData.length / 22) : 0}
                         angle={dailyTimelineData.length > 12 ? -45 : 0}
                         textAnchor={dailyTimelineData.length > 12 ? 'end' : 'middle'}
                         height={dailyTimelineData.length > 12 ? 50 : 30}
                       />
-                      <YAxis 
-                        tick={{ fontSize: 11, fill: '#94A3B8' }}
+                      <YAxis
+                        tick={{ fontSize: 11, fill: CHART_AXIS }}
                         axisLine={false}
                         tickLine={false}
                         allowDecimals={false}
+                        tickFormatter={(v: number) => nf(v)}
                       />
-                      <Tooltip 
+                      <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
                         content={
-                          <TimelineTooltip 
-                            filteredCount={filteredCalls.length} 
-                            selectedDay={selectedDay} 
+                          <TimelineTooltip
+                            filteredCount={filteredCalls.length}
+                            selectedDay={selectedDay}
                           />
                         }
                       />
-                      <Bar 
-                        dataKey="displayCount" 
-                        radius={[4, 4, 0, 0]} 
+                      <Bar
+                        dataKey="displayCount"
+                        radius={[4, 4, 0, 0]}
                         onClick={(entry: any) => {
                           if (entry && entry.dateStr) {
                             setSelectedDay(prev => prev === entry.dateStr ? null : entry.dateStr);
@@ -1142,12 +1176,12 @@ export default function App() {
                                   y={colTop}
                                   width={Math.max(4, width + 2)}
                                   height={colHeight}
-                                  fill="#ef4444"
-                                  fillOpacity={isSelected ? 0.28 : 0.14}
-                                  stroke="#ef4444"
-                                  strokeWidth={isSelected ? 2 : 1}
+                                  fill={DANGER}
+                                  fillOpacity={isSelected ? 0.24 : 0.1}
+                                  stroke={DANGER}
+                                  strokeWidth={isSelected ? 1.5 : 0.5}
                                   strokeDasharray="3 3"
-                                  strokeOpacity={isSelected ? 0.9 : 0.45}
+                                  strokeOpacity={isSelected ? 0.9 : 0.5}
                                   rx={4}
                                 />
                                 {/* Solid red baseline bar */}
@@ -1156,9 +1190,7 @@ export default function App() {
                                   y={Math.max(colTop, y)}
                                   width={Math.max(3, width)}
                                   height={Math.max(6, height)}
-                                  fill="#ef4444"
-                                  stroke="#dc2626"
-                                  strokeWidth={1}
+                                  fill={DANGER}
                                   rx={3}
                                 />
                                 {width >= 10 && (
@@ -1166,9 +1198,9 @@ export default function App() {
                                     x={x + width / 2}
                                     y={Math.max(colTop + 10, y - 4)}
                                     textAnchor="middle"
-                                    fill="#f87171"
-                                    fontSize={9}
-                                    fontWeight="bold"
+                                    fill={DANGER}
+                                    fontSize={10}
+                                    fontWeight={600}
                                   >
                                     0
                                   </text>
@@ -1184,9 +1216,9 @@ export default function App() {
                                 y={y}
                                 width={Math.max(2, width)}
                                 height={height}
-                                fill={isSelected ? '#60a5fa' : '#3b82f6'}
-                                stroke={isSelected ? '#93c5fd' : '#2563eb'}
-                                strokeWidth={isSelected ? 2 : 1}
+                                fill={isSelected ? '#409cff' : CHART[0]}
+                                stroke={isSelected ? '#f5f5f7' : 'none'}
+                                strokeWidth={isSelected ? 1.5 : 0}
                                 rx={Math.min(4, width / 2)}
                               />
                             </g>
@@ -1198,51 +1230,36 @@ export default function App() {
                 </div>
 
                 {/* Day-by-Day Strip (Calendar Ribbon) */}
-                <div className="pt-2 border-t border-slate-700/60 space-y-3">
+                <div className="pt-4 border-t-[0.5px] border-line space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-300">
+                    <span className="text-xs font-semibold text-fg-muted">
                       Denní páska se všemi dny ({timelineStats.totalDays} dní):
                     </span>
-                    <div className="flex items-center gap-1.5 text-xs bg-slate-900 p-1 rounded-lg border border-slate-700 self-start sm:self-auto">
+                    <div className="seg self-start sm:self-auto max-w-full overflow-x-auto">
                       <button
                         onClick={() => setTimelineFilterMode('all')}
-                        className={cn(
-                          "px-2.5 py-1 rounded text-xs transition-colors font-medium",
-                          timelineFilterMode === 'all' 
-                            ? "bg-slate-700 text-white shadow-sm" 
-                            : "text-slate-400 hover:text-slate-200"
-                        )}
+                        aria-pressed={timelineFilterMode === 'all'}
                       >
                         Všechny ({timelineStats.totalDays})
                       </button>
                       <button
                         onClick={() => setTimelineFilterMode('zero')}
-                        className={cn(
-                          "px-2.5 py-1 rounded text-xs transition-colors font-medium flex items-center gap-1",
-                          timelineFilterMode === 'zero' 
-                            ? "bg-rose-600 text-white shadow-sm" 
-                            : "text-rose-400 hover:text-rose-300"
-                        )}
+                        aria-pressed={timelineFilterMode === 'zero'}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                        <span className="size-1.5 rounded-full bg-danger" />
                         Nulové dny ({timelineStats.zeroDays})
                       </button>
                       <button
                         onClick={() => setTimelineFilterMode('active')}
-                        className={cn(
-                          "px-2.5 py-1 rounded text-xs transition-colors font-medium",
-                          timelineFilterMode === 'active' 
-                            ? "bg-blue-600 text-white shadow-sm" 
-                            : "text-slate-400 hover:text-slate-200"
-                        )}
+                        aria-pressed={timelineFilterMode === 'active'}
                       >
                         Aktivní ({timelineStats.activeDays})
                       </button>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-slate-700">
-                    <div className="flex gap-2 min-w-max">
+                  <div className="overflow-x-auto pb-2 -mx-1 px-1">
+                    <div className="flex gap-2 min-w-max py-1">
                       {dailyTimelineData
                         .filter(d => {
                           if (timelineFilterMode === 'zero') return d.isZero;
@@ -1256,29 +1273,29 @@ export default function App() {
                               key={day.dateStr}
                               onClick={() => setSelectedDay(prev => prev === day.dateStr ? null : day.dateStr)}
                               className={cn(
-                                "flex flex-col items-center justify-between p-2.5 rounded-xl border text-center transition-all min-w-[72px] shrink-0",
+                                "flex flex-col items-center justify-between p-2.5 rounded-button text-center transition-colors min-w-[72px] shrink-0 tabular-nums",
                                 day.isZero
                                   ? isSelected
-                                    ? "bg-rose-950 border-2 border-rose-400 text-rose-200 shadow-lg shadow-rose-950 ring-2 ring-rose-500"
-                                    : "bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/50 text-rose-300 shadow-sm"
+                                    ? "bg-danger/25 text-fg shadow-[0_0_0_1.5px_var(--color-danger)_inset]"
+                                    : "bg-danger/10 hover:bg-danger/20 hairline-danger text-fg-muted"
                                   : isSelected
-                                    ? "bg-blue-950 border-2 border-blue-400 text-blue-100 shadow-lg shadow-blue-950 ring-2 ring-blue-500"
-                                    : "bg-slate-900/80 hover:bg-slate-700/60 border border-slate-700 text-slate-300"
+                                    ? "bg-accent-soft text-fg shadow-[0_0_0_1.5px_var(--color-accent)_inset]"
+                                    : "bg-surface-2 hover:bg-surface-3 hairline text-fg-muted"
                               )}
                             >
-                              <span className="text-[10px] font-semibold uppercase opacity-75">
+                              <span className="text-[11px] font-medium text-fg-subtle">
                                 {day.dayOfWeek}
                               </span>
-                              <span className="text-xs font-bold my-0.5">
+                              <span className="text-xs font-semibold text-fg my-0.5">
                                 {day.displayDate}
                               </span>
                               <span className={cn(
-                                "text-[11px] font-extrabold px-1.5 py-0.5 rounded-md mt-1",
+                                "text-[11px] font-semibold px-1.5 py-0.5 rounded-[5px] mt-1",
                                 day.isZero
-                                  ? "bg-rose-500/30 text-rose-300 border border-rose-500/40"
-                                  : "bg-blue-500/20 text-blue-300 border border-blue-500/20"
+                                  ? "bg-danger/20 text-danger"
+                                  : "bg-accent-soft text-accent"
                               )}>
-                                {day.isZero ? '0' : day.count}
+                                {day.isZero ? '0' : nf(day.count)}
                               </span>
                             </button>
                           );
@@ -1290,48 +1307,49 @@ export default function App() {
             )}
 
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Top Phrases Chart */}
-              <div className="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center justify-between mb-8">
+              <div className="lg:col-span-2 panel p-5 min-w-0">
+                <div className="flex items-center justify-between gap-3 mb-6">
                   <div className="flex items-center gap-2">
-                    <BarChart3 size={20} className="text-blue-400" />
-                    <h3 className="font-semibold text-white">
+                    <BarChart3 size={18} className="text-accent" />
+                    <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">
                       {showAllPhrases ? 'Všechny vyhledávané fráze' : 'Top 10 vyhledávaných frází'}
                     </h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowAllPhrases(!showAllPhrases)}
-                    className="text-xs text-blue-400 hover:text-blue-300 font-medium px-3 py-1 bg-blue-400/10 rounded-full transition-colors"
+                    className="btn btn-ghost btn-sm"
                   >
                     {showAllPhrases ? 'Zobrazit Top 10' : 'Zobrazit vše'}
                   </button>
                 </div>
-                <div className={cn("w-full transition-all", showAllPhrases ? "h-[600px] overflow-y-auto pr-2" : "h-[350px]")}>
+                <div className={cn("w-full", showAllPhrases ? "h-[600px] overflow-y-auto pr-2" : "h-[350px]")}>
                   <ResponsiveContainer width="100%" height={showAllPhrases ? Math.max((stats.topPhrases?.length || 0) * 35, 350) : "100%"}>
                     <BarChart data={stats.topPhrases} layout="vertical" margin={{ left: 40, right: 60 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#334155" />
+                      <CartesianGrid horizontal={true} vertical={false} stroke={CHART_GRID} />
                       <XAxis type="number" hide />
-                      <YAxis 
-                        dataKey="phrase" 
-                        type="category" 
-                        width={120} 
-                        tick={{ fontSize: 12, fill: '#94A3B8' }}
+                      <YAxis
+                        dataKey="phrase"
+                        type="category"
+                        width={120}
+                        tick={{ fontSize: 12, fill: 'rgba(235,235,245,.60)' }}
                         axisLine={false}
                         tickLine={false}
                       />
-                      <Tooltip 
-                        cursor={{ fill: '#1E293B' }}
-                        contentStyle={{ backgroundColor: '#0F172A', borderRadius: '12px', border: '1px solid #334155', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                        itemStyle={{ color: '#F8FAFC' }}
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,.04)' }}
+                        contentStyle={TOOLTIP_STYLE}
+                        labelStyle={{ color: '#f5f5f7', fontWeight: 600 }}
+                        itemStyle={{ color: '#f5f5f7' }}
                         formatter={(value: number, name: string, props: any) => [
-                          `${value} (${props.payload.percentage.toFixed(1)}%)`, 
+                          `${nf(value)} (${pf(props.payload.percentage)})`,
                           'Počet'
                         ]}
                       />
                       <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
                         {stats.topPhrases?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={CHART[index % CHART.length]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -1340,10 +1358,10 @@ export default function App() {
               </div>
 
               {/* Price Consideration Distribution */}
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div className="flex items-center gap-2 mb-8">
-                  <DollarSign size={20} className="text-violet-400" />
-                  <h3 className="font-semibold text-white">Zohlednění ceny</h3>
+              <div className="panel p-5">
+                <div className="flex items-center gap-2 mb-6">
+                  <DollarSign size={18} className="text-accent" />
+                  <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Zohlednění ceny</h3>
                 </div>
                 <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1359,44 +1377,45 @@ export default function App() {
                         outerRadius={80}
                         paddingAngle={5}
                         dataKey="value"
+                        stroke="none"
                       >
-                        <Cell fill="#8b5cf6" />
-                        <Cell fill="#334155" />
+                        <Cell fill={CHART[0]} />
+                        <Cell fill={CHART[1]} />
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#0F172A', borderRadius: '12px', border: '1px solid #334155' }}
-                        itemStyle={{ color: '#F8FAFC' }}
+                      <Tooltip
+                        contentStyle={TOOLTIP_STYLE}
+                        itemStyle={{ color: '#f5f5f7' }}
                         formatter={(value: number, name: string) => [
-                          `${value} (${((value / stats.totalSearches) * 100).toFixed(1)}%)`,
+                          `${nf(value)} (${pf((value / stats.totalSearches) * 100)})`,
                           name
                         ]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="space-y-4 mt-4">
+                <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#8b5cf6]" />
-                      <span className="text-slate-300">Zohledňuje cenu</span>
+                      <div className="size-2.5 rounded-[3px] bg-chart-1" />
+                      <span className="text-fg-muted">Zohledňuje cenu</span>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-white">{stats.priceConsiderationCount}</div>
-                      <div className="text-[10px] text-slate-500">{((stats.priceConsiderationCount / stats.totalSearches) * 100).toFixed(1)}%</div>
+                    <div className="text-right tabular-nums">
+                      <div className="font-semibold text-fg">{nf(stats.priceConsiderationCount)}</div>
+                      <div className="text-xs text-fg-subtle">{pf((stats.priceConsiderationCount / stats.totalSearches) * 100)}</div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#334155]" />
-                      <span className="text-slate-300">Nezohledňuje cenu</span>
+                      <div className="size-2.5 rounded-[3px] bg-chart-2" />
+                      <span className="text-fg-muted">Nezohledňuje cenu</span>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-white">{stats.totalSearches - stats.priceConsiderationCount}</div>
-                      <div className="text-[10px] text-slate-500">{(((stats.totalSearches - stats.priceConsiderationCount) / stats.totalSearches) * 100).toFixed(1)}%</div>
+                    <div className="text-right tabular-nums">
+                      <div className="font-semibold text-fg">{nf(stats.totalSearches - stats.priceConsiderationCount)}</div>
+                      <div className="text-xs text-fg-subtle">{pf(((stats.totalSearches - stats.priceConsiderationCount) / stats.totalSearches) * 100)}</div>
                     </div>
                   </div>
-                  <div className="pt-2 mt-2 border-t border-slate-700/50">
-                    <p className="text-[10px] text-slate-500 italic leading-relaxed">
+                  <div className="pt-3 border-t-[0.5px] border-line">
+                    <p className="text-xs text-fg-subtle leading-relaxed">
                       * Zohlednění ceny zahrnuje vyhledávání s nastaveným cenovým rozsahem (min/max) nebo aplikovaným řazením (od nejlevnějšího/nejdražšího).
                     </p>
                   </div>
@@ -1405,21 +1424,21 @@ export default function App() {
             </div>
 
             {/* Data Table */}
-            <section className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg overflow-hidden">
-              <div className="p-6 border-b border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <h3 className="font-semibold text-white">Detailní výpis vyhledávání</h3>
-                  <span className="text-xs text-slate-400">
-                    {selectedDay 
-                      ? `${displayCalls.length} záznamů (den ${format(parseISO(selectedDay), 'd. M. yyyy')})` 
-                      : `${filteredCalls.length} záznamů`}
+            <section className="panel overflow-hidden">
+              <div className="p-5 border-b-[0.5px] border-line flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Detailní výpis vyhledávání</h3>
+                  <span className="text-xs text-fg-subtle tabular-nums">
+                    {selectedDay
+                      ? `${nf(displayCalls.length)} záznamů (den ${format(parseISO(selectedDay), 'd. M. yyyy')})`
+                      : `${nf(filteredCalls.length)} záznamů`}
                   </span>
                   {selectedDay && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 border border-blue-500/40 rounded-lg text-blue-300 text-xs font-medium">
+                    <div className="badge b-accent pr-1 tabular-nums">
                       <span>Aktivní filtr dne: {format(parseISO(selectedDay), 'd. M. yyyy')}</span>
-                      <button 
-                        onClick={() => setSelectedDay(null)} 
-                        className="hover:text-white hover:bg-blue-500/30 p-0.5 rounded transition-colors"
+                      <button
+                        onClick={() => setSelectedDay(null)}
+                        className="hover:text-fg hover:bg-accent-soft p-0.5 rounded-[5px] transition-colors"
                         title="Zrušit filtr dne"
                       >
                         <X size={13} />
@@ -1427,129 +1446,129 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs text-fg-muted">
                     <span>Zobrazit:</span>
-                    <select 
-                      value={pageSize} 
+                    <select
+                      value={pageSize}
                       onChange={(e) => {
                         setPageSize(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 text-slate-200"
+                      className="input !h-8 !w-auto !px-2 text-xs tabular-nums"
                     >
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
                   </div>
-                  <div className="relative w-full md:w-64">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input 
-                      type="text" 
+                  <div className="relative w-full sm:w-64">
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none" />
+                    <input
+                      type="text"
                       placeholder="Hledat v dotazech..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      className="input !rounded-full pl-10 pr-4"
                     />
                   </div>
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full min-w-[560px] text-left border-collapse text-[13px]">
                   <thead>
-                    <tr className="bg-slate-900/50">
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Čas</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Hledaná fráze</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Cena od</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Cena do</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Řazení</th>
+                    <tr>
+                      <th className="px-4 sm:px-5 py-2.5 text-[11px] font-semibold text-fg-subtle whitespace-nowrap border-b-[0.5px] border-line">Čas</th>
+                      <th className="px-4 sm:px-5 py-2.5 text-[11px] font-semibold text-fg-subtle whitespace-nowrap border-b-[0.5px] border-line">Hledaná fráze</th>
+                      <th className="px-4 sm:px-5 py-2.5 text-[11px] font-semibold text-fg-subtle whitespace-nowrap border-b-[0.5px] border-line text-right">Cena od</th>
+                      <th className="px-4 sm:px-5 py-2.5 text-[11px] font-semibold text-fg-subtle whitespace-nowrap border-b-[0.5px] border-line text-right">Cena do</th>
+                      <th className="px-4 sm:px-5 py-2.5 text-[11px] font-semibold text-fg-subtle whitespace-nowrap border-b-[0.5px] border-line">Řazení</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody>
                     {paginatedCalls.map((call, i) => {
                       const ts = call.timestamp.toISOString();
                       const isMulti = multiQueryTimestamps.has(ts);
                       const groupIdx = timestampToGroupIdx[ts];
                       const globalIdx = (currentPage - 1) * pageSize + i;
                       const isFirstInGroup = globalIdx === 0 || (displayCalls[globalIdx - 1] && displayCalls[globalIdx - 1].timestamp.toISOString() !== ts);
-                      
+
                       return (
                         <tr key={i} className={cn(
-                          "hover:bg-slate-700/30 transition-colors group relative",
-                          isMulti && (groupIdx % 2 === 0 ? "bg-violet-500/[0.08]" : "bg-orange-500/[0.08]"),
-                          isMulti && isFirstInGroup && globalIdx !== 0 && "border-t-2 border-slate-600"
+                          "hover:bg-white/[0.03] transition-colors group relative [&>td]:border-b-[0.5px] [&>td]:border-line last:[&>td]:border-b-0",
+                          isMulti && (groupIdx % 2 === 0 ? "bg-chart-4/[0.07]" : "bg-chart-3/[0.07]"),
+                          isMulti && isFirstInGroup && globalIdx !== 0 && "[&>td]:border-t [&>td]:border-t-line-strong"
                         )}>
-                          <td className="px-6 py-4 text-sm font-mono text-slate-400">
+                          <td className="px-4 sm:px-5 py-2.5 font-mono text-xs text-fg-muted tabular-nums whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {isMulti && (
                                 <div className={cn(
-                                  "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]",
-                                  groupIdx % 2 === 0 ? "bg-violet-400 shadow-violet-500/50" : "bg-orange-400 shadow-orange-500/50"
+                                  "size-1.5 rounded-full shrink-0",
+                                  groupIdx % 2 === 0 ? "bg-chart-4" : "bg-chart-3"
                                 )} title="Součást multi-dotazu" />
                               )}
                               <div>
                                 {format(call.timestamp, 'HH:mm:ss')}
-                                <div className="text-[10px] opacity-50">{format(call.timestamp, 'dd.MM.yyyy')}</div>
+                                <div className="text-[11px] text-fg-subtle">{format(call.timestamp, 'dd.MM.yyyy')}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm font-medium text-slate-200">
+                          <td className="px-4 sm:px-5 py-2.5 font-medium text-fg">
                             <div className="flex items-center gap-2">
                               {call.query}
                               {isMulti && (
                                 <span className={cn(
-                                  "text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border",
-                                  groupIdx % 2 === 0 
-                                    ? "bg-violet-500/20 text-violet-300 border-violet-500/30" 
-                                    : "bg-orange-500/20 text-orange-300 border-orange-500/30"
+                                  "badge !h-5 !px-1.5 !text-[11px]",
+                                  groupIdx % 2 === 0
+                                    ? "bg-chart-4/15 text-chart-4"
+                                    : "bg-chart-3/15 text-chart-3"
                                 )}>
                                   Multi
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 sm:px-5 py-2.5 text-right tabular-nums whitespace-nowrap">
                           {call.price_min ? (
-                            <span className="text-emerald-400 font-semibold">{call.price_min} Kč</span>
-                          ) : '-'}
+                            <span className="text-fg font-medium">{nf(call.price_min)} Kč</span>
+                          ) : <span className="text-fg-subtle">-</span>}
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td className="px-4 sm:px-5 py-2.5 text-right tabular-nums whitespace-nowrap">
                           {call.price_max ? (
-                            <span className="text-rose-400 font-semibold">{call.price_max} Kč</span>
-                          ) : '-'}
+                            <span className="text-fg font-medium">{nf(call.price_max)} Kč</span>
+                          ) : <span className="text-fg-subtle">-</span>}
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td className="px-4 sm:px-5 py-2.5">
                           {call.order_by === 'asc' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-400/10 text-emerald-400 rounded text-xs font-medium">
-                              <ArrowUpDown size={10} /> Nejlevnější
+                            <span className="badge b-neutral">
+                              <ArrowUpDown size={11} /> Nejlevnější
                             </span>
                           )}
                           {call.order_by === 'desc' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-rose-400/10 text-rose-400 rounded text-xs font-medium">
-                              <ArrowUpDown size={10} /> Nejdražší
+                            <span className="badge b-neutral">
+                              <ArrowUpDown size={11} /> Nejdražší
                             </span>
                           )}
-                          {!call.order_by && '-'}
+                          {!call.order_by && <span className="text-fg-subtle">-</span>}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
                 </table>
-                
+
                 {filteredCalls.length > 0 && (
-                  <div className="p-4 bg-slate-900/30 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs text-slate-500">
-                      Zobrazeno {Math.min(filteredCalls.length, (currentPage - 1) * pageSize + 1)} - {Math.min(filteredCalls.length, currentPage * pageSize)} z {filteredCalls.length} záznamů
+                  <div className="px-5 py-3 border-t-[0.5px] border-line flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-xs text-fg-subtle tabular-nums">
+                      Zobrazeno {nf(Math.min(filteredCalls.length, (currentPage - 1) * pageSize + 1))} - {nf(Math.min(filteredCalls.length, currentPage * pageSize))} z {nf(filteredCalls.length)} záznamů
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
+                    <div className="flex items-center gap-1.5">
+                      <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="btn btn-secondary btn-sm btn-icon"
                       >
-                        <ChevronLeft size={16} />
+                        <ChevronLeft />
                       </button>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1563,16 +1582,16 @@ export default function App() {
                           } else {
                             pageNum = currentPage - 2 + i;
                           }
-                          
+
                           return (
                             <button
                               key={pageNum}
                               onClick={() => setCurrentPage(pageNum)}
                               className={cn(
-                                "w-8 h-8 rounded-lg text-xs font-medium transition-all",
-                                currentPage === pageNum 
-                                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
-                                  : "bg-slate-800 border border-slate-700 text-slate-400 hover:text-white"
+                                "btn btn-sm btn-icon tabular-nums",
+                                currentPage === pageNum
+                                  ? "bg-accent-soft text-accent shadow-[0_0_0_.5px_rgba(10,132,255,.5)_inset]"
+                                  : "btn-secondary text-fg-muted"
                               )}
                             >
                               {pageNum}
@@ -1580,33 +1599,33 @@ export default function App() {
                           );
                         })}
                       </div>
-                      <button 
+                      <button
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="btn btn-secondary btn-sm btn-icon"
                       >
-                        <ChevronRight size={16} />
+                        <ChevronRight />
                       </button>
                     </div>
                   </div>
                 )}
 
                 {displayCalls.length === 0 && (
-                  <div className="p-12 text-center text-slate-400">
+                  <div className="p-12 text-center text-fg-muted">
                     {selectedDay ? (
                       <div className="max-w-md mx-auto space-y-3">
-                        <div className="w-12 h-12 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto">
-                          <AlertTriangle size={24} />
+                        <div className="size-12 rounded-full bg-danger/15 text-danger flex items-center justify-center mx-auto">
+                          <AlertTriangle size={22} />
                         </div>
-                        <h4 className="text-base font-semibold text-white">Nulová oblast — žádná vyhledávání</h4>
-                        <p className="text-xs text-slate-400">
+                        <h4 className="text-base font-semibold text-fg">Nulová oblast — žádná vyhledávání</h4>
+                        <p className="text-xs text-fg-muted">
                           V den {format(parseISO(selectedDay), 'd. M. yyyy')} nebyl zaznamenán žádný dotaz na vyhledávací nástroj.
                         </p>
                         <button
                           onClick={() => setSelectedDay(null)}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5 mt-2"
+                          className="btn btn-secondary btn-sm mt-2"
                         >
-                          <X size={14} /> Zrušit filtr dne a zobrazit vše
+                          <X /> Zrušit filtr dne a zobrazit vše
                         </button>
                       </div>
                     ) : (
@@ -1619,38 +1638,34 @@ export default function App() {
           </>
         )}
 
-        <footer className="text-center py-8 text-slate-500 text-sm border-t border-slate-800">
-          © {new Date().getFullYear()} Datart Search Log Analyzer • Vytvořeno pro analýzu AI asistentů
-        </footer>
-
         {debugLogs.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl mt-8 overflow-hidden">
-            <button 
+          <div className="card overflow-hidden">
+            <button
               onClick={() => setShowDebug(!showDebug)}
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-800/50 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors"
             >
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+              <h4 className="text-xs font-medium text-fg-muted flex items-center gap-2">
                 <BarChart3 size={14} />
                 Debug Logy ({debugLogs.length})
               </h4>
               <div className="flex items-center gap-4">
                 {showDebug && (
-                  <span 
+                  <span
                     onClick={(e) => { e.stopPropagation(); setDebugLogs([]); }}
-                    className="text-[10px] text-slate-600 hover:text-slate-400 font-bold uppercase tracking-widest"
+                    className="text-xs text-accent hover:text-accent-hover font-medium"
                   >
                     Vymazat
                   </span>
                 )}
-                <ChevronRight size={16} className={cn("text-slate-500 transition-transform", showDebug && "rotate-90")} />
+                <ChevronRight size={16} className={cn("text-fg-subtle transition-transform", showDebug && "rotate-90")} />
               </div>
             </button>
-            
+
             {showDebug && (
-              <div className="p-4 pt-0 border-t border-slate-800/50">
-                <div className="max-h-60 overflow-y-auto text-[10px] font-mono space-y-1 mt-4">
+              <div className="px-4 pb-4 border-t-[0.5px] border-line">
+                <div className="max-h-60 overflow-y-auto text-[11px] font-mono space-y-1 mt-3">
                   {debugLogs.map((log, i) => (
-                    <div key={i} className="text-slate-400 border-b border-slate-800/50 pb-1 last:border-0">
+                    <div key={i} className="text-fg-muted border-b-[0.5px] border-line pb-1 last:border-0">
                       {log}
                     </div>
                   ))}
@@ -1659,7 +1674,12 @@ export default function App() {
             )}
           </div>
         )}
-      </div>
+      </main>
+
+      <footer className="flex justify-between gap-3 flex-wrap px-4 sm:px-5 py-2.5 border-t-[0.5px] border-line text-xs text-fg-subtle">
+        <span>Datart Search Log Analyzer · Vytvořeno pro analýzu AI asistentů</span>
+        <span>AI Statistiky · © {new Date().getFullYear()} Jan Kuchař</span>
+      </footer>
     </div>
   );
 }

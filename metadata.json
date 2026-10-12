@@ -1,0 +1,5 @@
+{
+  "name": "Datart Search Log Analyzer",
+  "description": "Nástroj pro analýzu logů vyhledávání v Datartu z JSON souborů s exportem do CSV a pokročilým filtrováním.",
+  "requestFramePermissions": []
+}

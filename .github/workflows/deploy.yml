@@ -36,7 +36,7 @@ jobs:
           curl -fsSL https://www.jan-kuchar.cz/brand/staticrypt.html -o /tmp/staticrypt.html
           npx -y staticrypt@3.5.4 dist/index.html -d dist -c false \
             -t /tmp/staticrypt.html \
-            --salt "$STATICRYPT_SALT" --remember 30 \
+            --salt "$STATICRYPT_SALT" --remember 30 --short \
             --template-title "$APP_NAME · přihlášení" \
             --template-instructions "Tento nástroj je chráněný heslem." \
             --template-placeholder "Heslo" \

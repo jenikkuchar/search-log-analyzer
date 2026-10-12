@@ -44,18 +44,43 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Barvy grafů dle manuálu – pevné pořadí sérií
+// Série grafů dle manuálu – pevné pořadí, v obou režimech stejné
 const CHART = ['#0a84ff', '#30d158', '#ff9f0a', '#bf5af2', '#ff375f', '#64d2ff', '#ffd60a', '#ac8e68'];
-const DANGER = '#ff453a';
-const CHART_GRID = 'rgba(255,255,255,.08)';
-const CHART_AXIS = 'rgba(235,235,245,.38)';
+
+// Barvy, které se v SVG grafech nepřebarví přes CSS – čtou se z tokenů (brand/tokens.css)
+// a znovu při události jk-themechange z brand/theme.js
+interface ChartTheme {
+  grid: string;
+  axis: string;
+  label: string;
+  text: string;
+  danger: string;
+  accentHover: string;
+  cursor: string;
+}
+function readChartTheme(): ChartTheme {
+  const s = getComputedStyle(document.documentElement);
+  const v = (name: string) => s.getPropertyValue(name).trim();
+  return {
+    grid: v('--jk-chart-grid'),
+    axis: v('--jk-chart-axis'),
+    label: v('--jk-text-2'),
+    text: v('--jk-text'),
+    danger: v('--jk-danger'),
+    accentHover: v('--jk-accent-hover'),
+    cursor: v('--jk-fill')
+  };
+}
 const TOOLTIP_STYLE = {
-  backgroundColor: 'rgba(32,32,40,.92)',
+  backgroundColor: 'var(--jk-glass)',
+  backdropFilter: 'blur(30px)',
   borderRadius: '14px',
   border: 'none',
-  boxShadow: '0 0 0 .5px rgba(255,255,255,.14) inset, 0 40px 100px -20px rgba(0,0,0,.8)',
+  boxShadow: 'var(--jk-shadow-pop)',
   fontSize: '12px'
 };
+const TOOLTIP_LABEL_STYLE = { color: 'var(--jk-text)', fontWeight: 600 };
+const TOOLTIP_ITEM_STYLE = { color: 'var(--jk-text)' };
 
 // Český formát čísel
 const nf = (n: number, digits = 0) =>
@@ -142,6 +167,13 @@ function TimelineTooltip({ active, payload, filteredCount }: TimelineTooltipProp
 export default function App() {
   console.log("App component rendered");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  const [chartTheme, setChartTheme] = useState<ChartTheme>(readChartTheme);
+  useEffect(() => {
+    const onThemeChange = () => setChartTheme(readChartTheme());
+    document.addEventListener('jk-themechange', onThemeChange);
+    return () => document.removeEventListener('jk-themechange', onThemeChange);
+  }, []);
   
   const toolCalls = useMemo(() => {
     return uploadedFiles.flatMap(f => f.toolCalls);
@@ -684,7 +716,7 @@ export default function App() {
           <a href="https://www.jan-kuchar.cz" aria-label="jan-kuchar.cz" className="mark">JK</a>
           <span className="text-fg-subtle text-lg font-light" aria-hidden="true">/</span>
           <img src="/favicon.svg" alt="" className="size-[26px] shrink-0" />
-          <span className="text-[15px] font-light tracking-[-0.01em] whitespace-nowrap max-[340px]:sr-only">
+          <span className={cn("text-[15px] font-light tracking-[-0.01em] whitespace-nowrap max-[340px]:sr-only", toolCalls.length > 0 && "max-[440px]:sr-only")}>
             Search <b className="font-semibold">Analyzer</b>
           </span>
         </div>
@@ -699,7 +731,7 @@ export default function App() {
             title={uploadedFiles.length > 0 ? 'Sloučit další JSON' : 'Nahrát JSON'}
           >
             <FileUp />
-            <span className={cn(toolCalls.length > 0 && "max-sm:sr-only")}>
+            <span className="max-sm:sr-only">
               {uploadedFiles.length > 0 ? 'Sloučit další JSON' : 'Nahrát JSON'}
             </span>
           </button>
@@ -733,6 +765,17 @@ export default function App() {
               </button>
             </>
           )}
+          {/* Přepínač režimu – vždy poslední; klik, ⌘⇧L i uložení volby řeší brand/theme.js */}
+          <button
+            type="button"
+            className="theme-toggle"
+            data-theme-toggle
+            aria-label="Přepnout světlý / tmavý režim"
+            title="Přepnout režim (⌘⇧L)"
+          >
+            <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+          </button>
         </div>
       </header>
 
@@ -1122,26 +1165,26 @@ export default function App() {
                       data={dailyTimelineData}
                       margin={{ top: 20, right: 15, left: 0, bottom: dailyTimelineData.length > 12 ? 45 : 20 }}
                     >
-                      <CartesianGrid vertical={false} stroke={CHART_GRID} />
+                      <CartesianGrid vertical={false} stroke={chartTheme.grid} />
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 11, fill: CHART_AXIS }}
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
                         tickLine={false}
-                        axisLine={{ stroke: CHART_GRID }}
+                        axisLine={{ stroke: chartTheme.grid }}
                         interval={dailyTimelineData.length > 30 ? Math.ceil(dailyTimelineData.length / 22) : 0}
                         angle={dailyTimelineData.length > 12 ? -45 : 0}
                         textAnchor={dailyTimelineData.length > 12 ? 'end' : 'middle'}
                         height={dailyTimelineData.length > 12 ? 50 : 30}
                       />
                       <YAxis
-                        tick={{ fontSize: 11, fill: CHART_AXIS }}
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
                         axisLine={false}
                         tickLine={false}
                         allowDecimals={false}
                         tickFormatter={(v: number) => nf(v)}
                       />
                       <Tooltip
-                        cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
+                        cursor={{ fill: chartTheme.cursor }}
                         content={
                           <TimelineTooltip
                             filteredCount={filteredCalls.length}
@@ -1176,9 +1219,9 @@ export default function App() {
                                   y={colTop}
                                   width={Math.max(4, width + 2)}
                                   height={colHeight}
-                                  fill={DANGER}
+                                  fill={chartTheme.danger}
                                   fillOpacity={isSelected ? 0.24 : 0.1}
-                                  stroke={DANGER}
+                                  stroke={chartTheme.danger}
                                   strokeWidth={isSelected ? 1.5 : 0.5}
                                   strokeDasharray="3 3"
                                   strokeOpacity={isSelected ? 0.9 : 0.5}
@@ -1190,7 +1233,7 @@ export default function App() {
                                   y={Math.max(colTop, y)}
                                   width={Math.max(3, width)}
                                   height={Math.max(6, height)}
-                                  fill={DANGER}
+                                  fill={chartTheme.danger}
                                   rx={3}
                                 />
                                 {width >= 10 && (
@@ -1198,7 +1241,7 @@ export default function App() {
                                     x={x + width / 2}
                                     y={Math.max(colTop + 10, y - 4)}
                                     textAnchor="middle"
-                                    fill={DANGER}
+                                    fill={chartTheme.danger}
                                     fontSize={10}
                                     fontWeight={600}
                                   >
@@ -1216,8 +1259,8 @@ export default function App() {
                                 y={y}
                                 width={Math.max(2, width)}
                                 height={height}
-                                fill={isSelected ? '#409cff' : CHART[0]}
-                                stroke={isSelected ? '#f5f5f7' : 'none'}
+                                fill={isSelected ? chartTheme.accentHover : CHART[0]}
+                                stroke={isSelected ? chartTheme.text : 'none'}
                                 strokeWidth={isSelected ? 1.5 : 0}
                                 rx={Math.min(4, width / 2)}
                               />
@@ -1327,21 +1370,21 @@ export default function App() {
                 <div className={cn("w-full", showAllPhrases ? "h-[600px] overflow-y-auto pr-2" : "h-[350px]")}>
                   <ResponsiveContainer width="100%" height={showAllPhrases ? Math.max((stats.topPhrases?.length || 0) * 35, 350) : "100%"}>
                     <BarChart data={stats.topPhrases} layout="vertical" margin={{ left: 40, right: 60 }}>
-                      <CartesianGrid horizontal={true} vertical={false} stroke={CHART_GRID} />
+                      <CartesianGrid horizontal={true} vertical={false} stroke={chartTheme.grid} />
                       <XAxis type="number" hide />
                       <YAxis
                         dataKey="phrase"
                         type="category"
                         width={120}
-                        tick={{ fontSize: 12, fill: 'rgba(235,235,245,.60)' }}
+                        tick={{ fontSize: 12, fill: chartTheme.label }}
                         axisLine={false}
                         tickLine={false}
                       />
                       <Tooltip
-                        cursor={{ fill: 'rgba(255,255,255,.04)' }}
+                        cursor={{ fill: chartTheme.cursor }}
                         contentStyle={TOOLTIP_STYLE}
-                        labelStyle={{ color: '#f5f5f7', fontWeight: 600 }}
-                        itemStyle={{ color: '#f5f5f7' }}
+                        labelStyle={TOOLTIP_LABEL_STYLE}
+                        itemStyle={TOOLTIP_ITEM_STYLE}
                         formatter={(value: number, name: string, props: any) => [
                           `${nf(value)} (${pf(props.payload.percentage)})`,
                           'Počet'
@@ -1384,7 +1427,7 @@ export default function App() {
                       </Pie>
                       <Tooltip
                         contentStyle={TOOLTIP_STYLE}
-                        itemStyle={{ color: '#f5f5f7' }}
+                        itemStyle={TOOLTIP_ITEM_STYLE}
                         formatter={(value: number, name: string) => [
                           `${nf(value)} (${pf((value / stats.totalSearches) * 100)})`,
                           name
@@ -1495,7 +1538,7 @@ export default function App() {
 
                       return (
                         <tr key={i} className={cn(
-                          "hover:bg-white/[0.03] transition-colors group relative [&>td]:border-b-[0.5px] [&>td]:border-line last:[&>td]:border-b-0",
+                          "hover:bg-fill transition-colors group relative [&>td]:border-b-[0.5px] [&>td]:border-line last:[&>td]:border-b-0",
                           isMulti && (groupIdx % 2 === 0 ? "bg-chart-4/[0.07]" : "bg-chart-3/[0.07]"),
                           isMulti && isFirstInGroup && globalIdx !== 0 && "[&>td]:border-t [&>td]:border-t-line-strong"
                         )}>
@@ -1590,7 +1633,7 @@ export default function App() {
                               className={cn(
                                 "btn btn-sm btn-icon tabular-nums",
                                 currentPage === pageNum
-                                  ? "bg-accent-soft text-accent shadow-[0_0_0_.5px_rgba(10,132,255,.5)_inset]"
+                                  ? "bg-accent-soft text-accent hairline-accent"
                                   : "btn-secondary text-fg-muted"
                               )}
                             >
@@ -1642,7 +1685,7 @@ export default function App() {
           <div className="card overflow-hidden">
             <button
               onClick={() => setShowDebug(!showDebug)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-fill transition-colors"
             >
               <h4 className="text-xs font-medium text-fg-muted flex items-center gap-2">
                 <BarChart3 size={14} />

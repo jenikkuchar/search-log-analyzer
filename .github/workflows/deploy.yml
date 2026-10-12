@@ -33,7 +33,9 @@ jobs:
         run: |
           test -n "$STATICRYPT_PASSWORD" || { echo "Chybí secret STATICRYPT_PASSWORD"; exit 1; }
           test -n "$STATICRYPT_SALT" || { echo "Chybí secret STATICRYPT_SALT"; exit 1; }
+          curl -fsSL https://www.jan-kuchar.cz/brand/staticrypt.html -o /tmp/staticrypt.html
           npx -y staticrypt@3.5.4 dist/index.html -d dist -c false \
+            -t /tmp/staticrypt.html \
             --salt "$STATICRYPT_SALT" --remember 30 --short \
             --template-title "$APP_NAME · přihlášení" \
             --template-instructions "Tento nástroj je chráněný heslem." \
@@ -42,9 +44,7 @@ jobs:
             --template-remember "Zapamatovat na 30 dní" \
             --template-error "Špatné heslo" \
             --template-toggle-show "Zobrazit heslo" \
-            --template-toggle-hide "Skrýt heslo" \
-            --template-color-primary "#0071e3" \
-            --template-color-secondary "#08080c"
+            --template-toggle-hide "Skrýt heslo"
           grep -q "staticrypt" dist/index.html || { echo "index.html není zašifrovaný"; exit 1; }
       - uses: actions/upload-pages-artifact@v3
         with:
